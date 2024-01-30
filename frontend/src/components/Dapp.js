@@ -20,7 +20,7 @@ import { WaitingForTransactionMessage } from "./WaitingForTransactionMessage";
 import { NoTokensMessage } from "./NoTokensMessage";
 
 // This is the default id used by the Hardhat Network
-const HARDHAT_NETWORK_ID = '31337';
+const SEPOLIA_NETWORK_ID = '11155111';
 
 // This is an error code that indicates that the user canceled a transaction
 const ERROR_CODE_TX_REJECTED_BY_USER = 4001;
@@ -345,7 +345,7 @@ export class Dapp extends React.Component {
   }
 
   async _switchChain() {
-    const chainIdHex = `0x${HARDHAT_NETWORK_ID.toString(16)}`
+    const chainIdHex = `0x${SEPOLIA_NETWORK_ID.toString(16)}`
     await window.ethereum.request({
       method: "wallet_switchEthereumChain",
       params: [{ chainId: chainIdHex }],
@@ -355,7 +355,7 @@ export class Dapp extends React.Component {
 
   // This method checks if the selected network is Localhost:8545
   _checkNetwork() {
-    if (window.ethereum.networkVersion !== HARDHAT_NETWORK_ID) {
+    if (window.ethereum.networkVersion !== SEPOLIA_NETWORK_ID) {
       this._switchChain();
     }
   }
