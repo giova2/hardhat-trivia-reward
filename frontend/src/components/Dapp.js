@@ -18,9 +18,15 @@ import { Transfer } from "./Transfer";
 import { TransactionErrorMessage } from "./TransactionErrorMessage";
 import { WaitingForTransactionMessage } from "./WaitingForTransactionMessage";
 import { NoTokensMessage } from "./NoTokensMessage";
+import { Typography, Flex, Divider, Row, Col } from 'antd';
+import { ClaimGift } from "./ClaimGift";
+
+const { Title, Text } = Typography;
 
 // This is the default id used by the Hardhat Network
 const SEPOLIA_NETWORK_ID = '11155111';
+const HARDHAT_NETWORK_ID = '31337';
+const DEFAULT_NETWORK_ID = SEPOLIA_NETWORK_ID;
 
 // This is an error code that indicates that the user canceled a transaction
 const ERROR_CODE_TX_REJECTED_BY_USER = 4001;
@@ -47,8 +53,11 @@ export class Dapp extends React.Component {
       // The user's address and balance
       selectedAddress: undefined,
       balance: undefined,
+      balanceOfGiftSupply: undefined,
+      canReceiveGift: true,
       // The ID about transactions being sent, and any possible error with them
       txBeingSent: undefined,
+      giftBeingClaimed: undefined,
       transactionError: undefined,
       networkError: undefined,
     };
@@ -72,11 +81,16 @@ export class Dapp extends React.Component {
     // clicks a button. This callback just calls the _connectWallet method.
     if (!this.state.selectedAddress) {
       return (
-        <ConnectWallet 
-          connectWallet={() => this._connectWallet()} 
-          networkError={this.state.networkError}
-          dismiss={() => this._dismissNetworkError()}
-        />
+        <Flex justify="center" align="center" vertical>
+          <Title>
+            Giova Token
+          </Title>
+          <ConnectWallet 
+            connectWallet={() => this._connectWallet()} 
+            networkError={this.state.networkError}
+            dismiss={() => this._dismissNetworkError()}
+          />
+        </Flex>
       );
     }
 
@@ -88,26 +102,24 @@ export class Dapp extends React.Component {
 
     // If everything is loaded, we render the application.
     return (
-      <div className="container p-4">
-        <div className="row">
-          <div className="col-12">
-            <h1>
+      <Row >
+        <Col span={24}>
+          <Flex justify="center" align="center" vertical>
+            <Title>
               {this.state.tokenData.name} ({this.state.tokenData.symbol})
-            </h1>
-            <p>
-              Welcome <b>{this.state.selectedAddress}</b>, you have{" "}
+            </Title>
+            <Text ellipsis={{
+              tooltip: `Welcome ${this.state.selectedAddress}, you have ${this.state.balance.toString()} ${this.state.tokenData.symbol}`
+            }}>
+              Welcome <b>{this.state.selectedAddress}</b>, <br/>you have{" "}
               <b>
                 {this.state.balance.toString()} {this.state.tokenData.symbol}
               </b>
               .
-            </p>
-          </div>
-        </div>
-
-        <hr />
-
-        <div className="row">
-          <div className="col-12">
+            </Text>
+          </Flex>
+          <Divider />
+          <Flex justify="center" align="center" wrap="wrap" vertical>
             {/* 
               Sending a transaction isn't an immediate action. You have to wait
               for it to be mined.
@@ -123,20 +135,24 @@ export class Dapp extends React.Component {
             */}
             {this.state.transactionError && (
               <TransactionErrorMessage
-                message={this._getRpcErrorMessage(this.state.transactionError)}
-                dismiss={() => this._dismissTransactionError()}
+              message={this._getRpcErrorMessage(this.state.transactionError)}
+              dismiss={() => this._dismissTransactionError()}
               />
-            )}
-          </div>
-        </div>
-
-        <div className="row">
-          <div className="col-12">
+              )}
+          </Flex>
+          
+          <Flex justify="center" align="center" wrap="wrap" vertical>
             {/*
               If the user has no tokens, we don't show the Transfer form
             */}
-            {this.state.balance.eq(0) && (
+            {this.state.canReceiveGift && this.state.balance.eq(0) && this.state.balanceOfGiftSupply.eq(0) &&(
               <NoTokensMessage selectedAddress={this.state.selectedAddress} />
+              )}
+            {this.state.canReceiveGift && this.state.balance.eq(0) && this.state.balanceOfGiftSupply.gt(0) && (
+              <ClaimGift 
+                claimGift={() => this._claimGift()} 
+                balanceOfGiftSupply={this.state.balanceOfGiftSupply.toString()} 
+              />
             )}
 
             {/*
@@ -147,15 +163,16 @@ export class Dapp extends React.Component {
             */}
             {this.state.balance.gt(0) && (
               <Transfer
-                transferTokens={(to, amount) =>
-                  this._transferTokens(to, amount)
-                }
-                tokenSymbol={this.state.tokenData.symbol}
+              transferTokens={(to, amount) =>
+                this._transferTokens(to, amount)
+              }
+              tokenSymbol={this.state.tokenData.symbol}
               />
-            )}
-          </div>
-        </div>
-      </div>
+              )}
+          </Flex>
+        </Col>
+      </Row>
+      
     );
   }
 
@@ -172,7 +189,6 @@ export class Dapp extends React.Component {
     // To connect to the user's wallet, we have to run this method.
     // It returns a promise that will resolve to the user's address.
     const [selectedAddress] = await window.ethereum.request({ method: 'eth_requestAccounts' });
-
     // Once we have the address, we can initialize the application.
 
     // First we check the network
@@ -234,10 +250,15 @@ export class Dapp extends React.Component {
   // don't need to poll it. If that's the case, you can just fetch it when you
   // initialize the app, as we do with the token data.
   _startPollingData() {
-    this._pollDataInterval = setInterval(() => this._updateBalance(), 1000);
+    this._pollDataInterval = setInterval(() => {
+      this._updateBalance();
+      this._updateGiftBalance();
+    }, 1000);
 
     // We run it once immediately so we don't have to wait for it
     this._updateBalance();
+    this._updateGiftBalance();
+    this._updateCanReceiveGift();
   }
 
   _stopPollingData() {
@@ -257,6 +278,16 @@ export class Dapp extends React.Component {
   async _updateBalance() {
     const balance = await this._token.balanceOf(this.state.selectedAddress);
     this.setState({ balance });
+  }
+
+  async _updateGiftBalance() {
+    const balanceOfGiftSupply = await this._token.balanceOfGiftSupply();
+    this.setState({ balanceOfGiftSupply });
+  }
+
+  async _updateCanReceiveGift() {
+    const canReceiveGift = await this._token.canReceiveGift();
+    this.setState({ canReceiveGift });
   }
 
   // This method sends an ethereum transaction to transfer tokens.
@@ -329,6 +360,54 @@ export class Dapp extends React.Component {
     this.setState({ networkError: undefined });
   }
 
+  async _claimGift() {
+    try {
+      // If a transaction fails, we save that error in the component's state.
+      // We only save one such error, so before sending a second transaction, we
+      // clear it.
+      this._dismissTransactionError();
+
+      // We send the transaction, and save its hash in the Dapp's state. This
+      // way we can indicate that we are waiting for it to be mined.
+      const tx = await this._token.claimGift();
+      this.setState({ txBeingSent: tx.hash });
+
+      // We use .wait() to wait for the transaction to be mined. This method
+      // returns the transaction's receipt.
+      const receipt = await tx.wait();
+
+      // The receipt, contains a status flag, which is 0 to indicate an error.
+      if (receipt.status === 0) {
+        // We can't know the exact error that made the transaction fail when it
+        // was mined, so we throw this generic one.
+        throw new Error("Transaction failed");
+      }
+
+      // If we got here, the transaction was successful, so you may want to
+      // update your state. Here, we update the user's balance.
+      await this._updateBalance();
+      await this._updateGiftBalance();
+      await this._updateCanReceiveGift();
+    } catch (error) {
+      // We check the error code to see if this error was produced because the
+      // user rejected a tx. If that's the case, we do nothing.
+      if (error.code === ERROR_CODE_TX_REJECTED_BY_USER) {
+        return;
+      }
+
+      // Other errors are logged and stored in the Dapp's state. This is used to
+      // show them to the user, and for debugging.
+      console.error(error);
+      this.setState({ transactionError: error });
+    } finally {
+      // If we leave the try/catch, we aren't sending a tx anymore, so we clear
+      // this part of the state.
+      this.setState({ txBeingSent: undefined });
+    }
+  }
+
+  
+
   // This is an utility method that turns an RPC error into a human readable
   // message.
   _getRpcErrorMessage(error) {
@@ -345,7 +424,7 @@ export class Dapp extends React.Component {
   }
 
   async _switchChain() {
-    const chainIdHex = `0x${SEPOLIA_NETWORK_ID.toString(16)}`
+    const chainIdHex = `0x${DEFAULT_NETWORK_ID.toString(16)}`
     await window.ethereum.request({
       method: "wallet_switchEthereumChain",
       params: [{ chainId: chainIdHex }],
@@ -355,7 +434,7 @@ export class Dapp extends React.Component {
 
   // This method checks if the selected network is Localhost:8545
   _checkNetwork() {
-    if (window.ethereum.networkVersion !== SEPOLIA_NETWORK_ID) {
+    if (window.ethereum.networkVersion !== DEFAULT_NETWORK_ID) {
       this._switchChain();
     }
   }

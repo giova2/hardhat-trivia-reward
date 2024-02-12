@@ -19,6 +19,9 @@ require("./tasks/faucet");
 module.exports = {
   solidity: "0.8.17",
   networks: {
+    hardhat: {
+      chainId: 31337,
+    },
     sepolia: {
       url: process.env.ALCHEMY_RPC_URL,
       accounts: [SEPOLIA_PRIVATE_KEY]

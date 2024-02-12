@@ -2,7 +2,7 @@ import React from "react";
 
 export function Transfer({ transferTokens, tokenSymbol }) {
   return (
-    <div>
+    <>
       <h4>Transfer</h4>
       <form
         onSubmit={(event) => {
@@ -38,6 +38,6 @@ export function Transfer({ transferTokens, tokenSymbol }) {
           <input className="btn btn-primary" type="submit" value="Transfer" />
         </div>
       </form>
-    </div>
+    </>
   );
 }

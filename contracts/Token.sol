@@ -13,7 +13,9 @@ contract Token {
     string public name = "Giova Token";
     string public symbol = "GIT";
 
+    uint256 public giftSupply = 100;
     // The fixed amount of tokens stored in an unsigned integer type variable.
+    uint256 public ownerSupply = 999900;
     uint256 public totalSupply = 1000000;
 
     // An address type variable is used to store ethereum accounts.
@@ -21,10 +23,13 @@ contract Token {
 
     // A mapping is a key/value map. Here we store each account balance.
     mapping(address => uint256) balances;
+    mapping(address => bool) alreadyClaimedGift;
 
     // The Transfer event helps off-chain aplications understand
     // what happens within your contract.
     event Transfer(address indexed _from, address indexed _to, uint256 _value);
+
+    event GiftClaimed(address indexed _from);
 
     /**
      * Contract initialization.
@@ -32,7 +37,7 @@ contract Token {
     constructor() {
         // The totalSupply is assigned to the transaction sender, which is the
         // account that is deploying the contract.
-        balances[msg.sender] = totalSupply;
+        balances[msg.sender] = ownerSupply;
         owner = msg.sender;
     }
 
@@ -65,6 +70,16 @@ contract Token {
         emit Transfer(msg.sender, to, amount);
     }
 
+    function claimGift() external {
+        require(!alreadyClaimedGift[msg.sender], "Claimed Gift Already");
+        require(giftSupply > 0, "Out of gifts!");
+
+        alreadyClaimedGift[msg.sender] = true;
+        balances[msg.sender] += 1;
+        giftSupply -= 1;
+        emit GiftClaimed(msg.sender);
+    }
+
     /**
      * Read only function to retrieve the token balance of a given account.
      *
@@ -73,5 +88,13 @@ contract Token {
      */
     function balanceOf(address account) external view returns (uint256) {
         return balances[account];
+    }
+
+    function balanceOfGiftSupply() external view returns (uint256) {
+        return giftSupply;
+    }
+
+    function canReceiveGift() external view returns (bool) {
+        return !alreadyClaimedGift[msg.sender] && balances[msg.sender] == 0;
     }
 }

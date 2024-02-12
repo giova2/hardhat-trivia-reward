@@ -1,10 +1,11 @@
 import React from "react";
+import {Flex} from 'antd';
 
 export function NoWalletDetected() {
   return (
     <div className="container">
-      <div className="row justify-content-md-center">
-        <div className="col-6 p-4 text-center">
+      <Flex justify="center">
+        <div className="col-10 p-4 text-center">
           <p>
             No Ethereum wallet was detected. <br />
             Please install{" "}
@@ -22,7 +23,7 @@ export function NoWalletDetected() {
             .
           </p>
         </div>
-      </div>
+      </Flex>
     </div>
   );
 }
