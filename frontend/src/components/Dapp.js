@@ -5,28 +5,26 @@ import { ethers } from "ethers";
 
 // We import the contract's artifacts and address here, as we are going to be
 // using them with ethers
-import TokenArtifact from "../contracts/Token.json";
+import TriviaRewardArtifact from "../contracts/TriviaReward.json";
 import contractAddress from "../contracts/contract-address.json";
 
 // All the logic of this dapp is contained in the Dapp component.
 // These other components are just presentational ones: they don't have any
 // logic. They just render HTML.
-import { NoWalletDetected } from "./NoWalletDetected";
+import { Col, Divider, Flex, Row, Typography } from 'antd';
 import { ConnectWallet } from "./ConnectWallet";
 import { Loading } from "./Loading";
-import { Transfer } from "./Transfer";
-import { TransactionErrorMessage } from "./TransactionErrorMessage";
-import { WaitingForTransactionMessage } from "./WaitingForTransactionMessage";
 import { NoTokensMessage } from "./NoTokensMessage";
-import { Typography, Flex, Divider, Row, Col } from 'antd';
-import { ClaimGift } from "./ClaimGift";
+import { NoWalletDetected } from "./NoWalletDetected";
+import { TransactionErrorMessage } from "./TransactionErrorMessage";
+import { Trivia } from "./Trivia";
+import { WaitingForTransactionMessage } from "./WaitingForTransactionMessage";
+import Header from './Header'
 
-const { Title, Text } = Typography;
 
-// This is the default id used by the Hardhat Network
-const SEPOLIA_NETWORK_ID = '11155111';
-const HARDHAT_NETWORK_ID = '31337';
-const DEFAULT_NETWORK_ID = SEPOLIA_NETWORK_ID;
+const { Title } = Typography;
+
+const DEFAULT_NETWORK_ID = process.env.REACT_APP_NETWORK_ID.toString();
 
 // This is an error code that indicates that the user canceled a transaction
 const ERROR_CODE_TX_REJECTED_BY_USER = 4001;
@@ -53,11 +51,15 @@ export class Dapp extends React.Component {
       // The user's address and balance
       selectedAddress: undefined,
       balance: undefined,
-      balanceOfGiftSupply: undefined,
-      canReceiveGift: true,
+      triviaRewardBalance: undefined,
+      canReceiveReward: true,
+      quatityOfSuccessfullClaims: 0,
+      claimTimesLimit: 0,
+      disableClaimReward: false,
+      resetTrivia: 0,
+      
       // The ID about transactions being sent, and any possible error with them
       txBeingSent: undefined,
-      giftBeingClaimed: undefined,
       transactionError: undefined,
       networkError: undefined,
     };
@@ -83,7 +85,7 @@ export class Dapp extends React.Component {
       return (
         <Flex justify="center" align="center" vertical>
           <Title>
-            Giova Token
+            {process.env.REACT_APP_TITLE}
           </Title>
           <ConnectWallet 
             connectWallet={() => this._connectWallet()} 
@@ -97,27 +99,27 @@ export class Dapp extends React.Component {
     // If the token data or the user's balance hasn't loaded yet, we show
     // a loading component.
     if (!this.state.tokenData || !this.state.balance) {
-      return <Loading />;
+      return (
+        <Flex justify="center" align="center" vertical style={{height: '100vh'}}>
+          <Loading />
+        </Flex>
+      );
     }
 
     // If everything is loaded, we render the application.
     return (
       <Row >
         <Col span={24}>
-          <Flex justify="center" align="center" vertical>
-            <Title>
-              {this.state.tokenData.name} ({this.state.tokenData.symbol})
-            </Title>
-            <Text ellipsis={{
-              tooltip: `Welcome ${this.state.selectedAddress}, you have ${this.state.balance.toString()} ${this.state.tokenData.symbol}`
-            }}>
-              Welcome <b>{this.state.selectedAddress}</b>, <br/>you have{" "}
-              <b>
-                {this.state.balance.toString()} {this.state.tokenData.symbol}
-              </b>
-              .
-            </Text>
-          </Flex>
+          <Header
+            title={`${this.state.tokenData.name} (${this.state.tokenData.symbol})`}
+            subtitle={<>Welcome <b>{this.state.selectedAddress}</b>, <br/>you have{" "}
+            <b>
+              {this.state.balance.toString()} {this.state.tokenData.symbol}
+            </b>
+            .</>}
+            quatityOfSuccessfullClaims={this.state.quatityOfSuccessfullClaims}
+            claimTimesLimit={this.state.claimTimesLimit}
+          />
           <Divider />
           <Flex justify="center" align="center" wrap="wrap" vertical>
             {/* 
@@ -135,8 +137,8 @@ export class Dapp extends React.Component {
             */}
             {this.state.transactionError && (
               <TransactionErrorMessage
-              message={this._getRpcErrorMessage(this.state.transactionError)}
-              dismiss={() => this._dismissTransactionError()}
+                message={this._getRpcErrorMessage(this.state.transactionError)}
+                dismiss={()=> this._dismissTransactionError()}
               />
               )}
           </Flex>
@@ -145,30 +147,17 @@ export class Dapp extends React.Component {
             {/*
               If the user has no tokens, we don't show the Transfer form
             */}
-            {this.state.canReceiveGift && this.state.balance.eq(0) && this.state.balanceOfGiftSupply.eq(0) &&(
+            {this.state.canReceiveReward && this.state.triviaRewardBalance.eq(0) &&(
               <NoTokensMessage selectedAddress={this.state.selectedAddress} />
               )}
-            {this.state.canReceiveGift && this.state.balance.eq(0) && this.state.balanceOfGiftSupply.gt(0) && (
-              <ClaimGift 
-                claimGift={() => this._claimGift()} 
-                balanceOfGiftSupply={this.state.balanceOfGiftSupply.toString()} 
+            {this.state.canReceiveReward && this.state.triviaRewardBalance.gt(0) && (
+              <Trivia 
+                claimReward={() => this._claimReward()} 
+                triviaRewardBalance={this.state.triviaRewardBalance.toString()} 
+                disableClaimReward={this.state.disableClaimReward}
+                resetTrivia={this.state.resetTrivia}
               />
             )}
-
-            {/*
-              This component displays a form that the user can use to send a 
-              transaction and transfer some tokens.
-              The component doesn't have logic, it just calls the transferTokens
-              callback.
-            */}
-            {this.state.balance.gt(0) && (
-              <Transfer
-              transferTokens={(to, amount) =>
-                this._transferTokens(to, amount)
-              }
-              tokenSymbol={this.state.tokenData.symbol}
-              />
-              )}
           </Flex>
         </Col>
       </Row>
@@ -225,7 +214,7 @@ export class Dapp extends React.Component {
     // Fetching the token data and the user's balance are specific to this
     // sample project, but you can reuse the same initialization pattern.
     this._initializeEthers();
-    this._getTokenData();
+    this._getTriviaRewardData();
     this._startPollingData();
   }
 
@@ -235,9 +224,9 @@ export class Dapp extends React.Component {
 
     // Then, we initialize the contract using that provider and the token's
     // artifact. You can do this same thing with your contracts.
-    this._token = new ethers.Contract(
-      contractAddress.Token,
-      TokenArtifact.abi,
+    this._triviaRewardContract = new ethers.Contract(
+      contractAddress.TriviaReward,
+      TriviaRewardArtifact.abi,
       this._provider.getSigner(0)
     );
   }
@@ -252,13 +241,19 @@ export class Dapp extends React.Component {
   _startPollingData() {
     this._pollDataInterval = setInterval(() => {
       this._updateBalance();
-      this._updateGiftBalance();
+      this._updateTriviaRewardBalance();
     }, 1000);
 
     // We run it once immediately so we don't have to wait for it
+    this._batchOfUpdates()  
+  }
+
+  _batchOfUpdates() {
     this._updateBalance();
-    this._updateGiftBalance();
-    this._updateCanReceiveGift();
+    this._updateTriviaRewardBalance();
+    this._updateCanReceiveReward();
+    this._quatityOfSuccessfullClaims();
+    this._claimTimesLimit();
   }
 
   _stopPollingData() {
@@ -268,86 +263,36 @@ export class Dapp extends React.Component {
 
   // The next two methods just read from the contract and store the results
   // in the component state.
-  async _getTokenData() {
-    const name = await this._token.name();
-    const symbol = await this._token.symbol();
+  async _getTriviaRewardData() {
+    const name = await this._triviaRewardContract.name();
+    const symbol = await this._triviaRewardContract.symbol();
 
     this.setState({ tokenData: { name, symbol } });
   }
 
+  async _quatityOfSuccessfullClaims(){
+    const quatityOfSuccessfullClaims = await this._triviaRewardContract.quatityOfSuccessfullClaims();
+    this.setState({ quatityOfSuccessfullClaims });
+  }
+
+  async _claimTimesLimit(){
+    const claimTimesLimit = await this._triviaRewardContract.claimTimesLimit();
+    this.setState({ claimTimesLimit });
+  }
+  
   async _updateBalance() {
-    const balance = await this._token.balanceOf(this.state.selectedAddress);
+    const balance = await this._triviaRewardContract.balanceOf(this.state.selectedAddress);
     this.setState({ balance });
   }
 
-  async _updateGiftBalance() {
-    const balanceOfGiftSupply = await this._token.balanceOfGiftSupply();
-    this.setState({ balanceOfGiftSupply });
+  async _updateTriviaRewardBalance() {
+    const triviaRewardBalance = await this._triviaRewardContract.triviaRewardBalance();
+    this.setState({ triviaRewardBalance });
   }
 
-  async _updateCanReceiveGift() {
-    const canReceiveGift = await this._token.canReceiveGift();
-    this.setState({ canReceiveGift });
-  }
-
-  // This method sends an ethereum transaction to transfer tokens.
-  // While this action is specific to this application, it illustrates how to
-  // send a transaction.
-  async _transferTokens(to, amount) {
-    // Sending a transaction is a complex operation:
-    //   - The user can reject it
-    //   - It can fail before reaching the ethereum network (i.e. if the user
-    //     doesn't have ETH for paying for the tx's gas)
-    //   - It has to be mined, so it isn't immediately confirmed.
-    //     Note that some testing networks, like Hardhat Network, do mine
-    //     transactions immediately, but your dapp should be prepared for
-    //     other networks.
-    //   - It can fail once mined.
-    //
-    // This method handles all of those things, so keep reading to learn how to
-    // do it.
-
-    try {
-      // If a transaction fails, we save that error in the component's state.
-      // We only save one such error, so before sending a second transaction, we
-      // clear it.
-      this._dismissTransactionError();
-
-      // We send the transaction, and save its hash in the Dapp's state. This
-      // way we can indicate that we are waiting for it to be mined.
-      const tx = await this._token.transfer(to, amount);
-      this.setState({ txBeingSent: tx.hash });
-
-      // We use .wait() to wait for the transaction to be mined. This method
-      // returns the transaction's receipt.
-      const receipt = await tx.wait();
-
-      // The receipt, contains a status flag, which is 0 to indicate an error.
-      if (receipt.status === 0) {
-        // We can't know the exact error that made the transaction fail when it
-        // was mined, so we throw this generic one.
-        throw new Error("Transaction failed");
-      }
-
-      // If we got here, the transaction was successful, so you may want to
-      // update your state. Here, we update the user's balance.
-      await this._updateBalance();
-    } catch (error) {
-      // We check the error code to see if this error was produced because the
-      // user rejected a tx. If that's the case, we do nothing.
-      if (error.code === ERROR_CODE_TX_REJECTED_BY_USER) {
-        return;
-      }
-
-      // Other errors are logged and stored in the Dapp's state. This is used to
-      // show them to the user, and for debugging.
-      console.error(error);
-      this.setState({ transactionError: error });
-    } finally {
-      // If we leave the try/catch, we aren't sending a tx anymore, so we clear
-      // this part of the state.
-      this.setState({ txBeingSent: undefined });
-    }
+  async _updateCanReceiveReward() {
+    const canReceiveReward = await this._triviaRewardContract.canReceiveReward();
+    this.setState({ canReceiveReward });
   }
 
   // This method just clears part of the state.
@@ -360,16 +305,18 @@ export class Dapp extends React.Component {
     this.setState({ networkError: undefined });
   }
 
-  async _claimGift() {
+  async _claimReward() {
     try {
       // If a transaction fails, we save that error in the component's state.
       // We only save one such error, so before sending a second transaction, we
       // clear it.
       this._dismissTransactionError();
+      
+      this.setState({ disableClaimReward: true });
 
       // We send the transaction, and save its hash in the Dapp's state. This
       // way we can indicate that we are waiting for it to be mined.
-      const tx = await this._token.claimGift();
+      const tx = await this._triviaRewardContract.reward();
       this.setState({ txBeingSent: tx.hash });
 
       // We use .wait() to wait for the transaction to be mined. This method
@@ -385,9 +332,9 @@ export class Dapp extends React.Component {
 
       // If we got here, the transaction was successful, so you may want to
       // update your state. Here, we update the user's balance.
-      await this._updateBalance();
-      await this._updateGiftBalance();
-      await this._updateCanReceiveGift();
+      this._batchOfUpdates();
+      const resetTrivia = this.state.resetTrivia;
+      this.setState({ resetTrivia: resetTrivia+1 });
     } catch (error) {
       // We check the error code to see if this error was produced because the
       // user rejected a tx. If that's the case, we do nothing.
@@ -403,6 +350,7 @@ export class Dapp extends React.Component {
       // If we leave the try/catch, we aren't sending a tx anymore, so we clear
       // this part of the state.
       this.setState({ txBeingSent: undefined });
+      this.setState({ disableClaimReward: false});
     }
   }
 

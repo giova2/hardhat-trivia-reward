@@ -1,0 +1,1 @@
+export const NUMBER_OF_QUESTIONS = parseInt(process.env.REACT_APP_NUMBER_OF_QUESTIONS);

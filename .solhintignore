@@ -1,0 +1,9 @@
+node_modules/
+migrations/
+.idea
+.DS_Store
+
+#Hardhat files
+cache
+artifacts
+.env

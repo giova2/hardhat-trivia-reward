@@ -22,11 +22,12 @@ async function main() {
 
   console.log("Account balance:", (await deployer.getBalance()).toString());
 
-  const Token = await ethers.getContractFactory("Token");
-  const token = await Token.deploy();
+  const TriviaReward = await ethers.getContractFactory("TriviaReward");
+  const MAX_CLAIM_TIMES = 2;
+  const token = await TriviaReward.deploy(MAX_CLAIM_TIMES);
   await token.deployed();
 
-  console.log("Token address:", token.address);
+  console.log("TriviaReward address:", token.address);
 
   // We also save the contract's artifacts and address in the frontend directory
   saveFrontendFiles(token);
@@ -42,14 +43,14 @@ function saveFrontendFiles(token) {
 
   fs.writeFileSync(
     path.join(contractsDir, "contract-address.json"),
-    JSON.stringify({ Token: token.address }, undefined, 2)
+    JSON.stringify({ TriviaReward: token.address }, undefined, 2)
   );
 
-  const TokenArtifact = artifacts.readArtifactSync("Token");
+  const TriviaRewardArtifact = artifacts.readArtifactSync("TriviaReward");
 
   fs.writeFileSync(
-    path.join(contractsDir, "Token.json"),
-    JSON.stringify(TokenArtifact, null, 2)
+    path.join(contractsDir, "TriviaReward.json"),
+    JSON.stringify(TriviaRewardArtifact, null, 2)
   );
 }
 
