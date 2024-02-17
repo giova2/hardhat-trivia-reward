@@ -1,0 +1,13 @@
+{
+  "files": {
+    "main.css": "/hardhat-trivia-reward/static/css/main.30f84c49.css",
+    "main.js": "/hardhat-trivia-reward/static/js/main.5a2b58d8.js",
+    "index.html": "/hardhat-trivia-reward/index.html",
+    "main.30f84c49.css.map": "/hardhat-trivia-reward/static/css/main.30f84c49.css.map",
+    "main.5a2b58d8.js.map": "/hardhat-trivia-reward/static/js/main.5a2b58d8.js.map"
+  },
+  "entrypoints": [
+    "static/css/main.30f84c49.css",
+    "static/js/main.5a2b58d8.js"
+  ]
+}
