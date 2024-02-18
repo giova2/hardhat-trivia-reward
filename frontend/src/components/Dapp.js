@@ -11,7 +11,7 @@ import contractAddress from "../contracts/contract-address.json";
 // All the logic of this dapp is contained in the Dapp component.
 // These other components are just presentational ones: they don't have any
 // logic. They just render HTML.
-import { Col, Divider, Flex, Row, Typography } from 'antd';
+import { Col, Divider, Flex, Row } from 'antd';
 import { ConnectWallet } from "./ConnectWallet";
 import { Loading } from "./Loading";
 import { NoTokensMessage } from "./NoTokensMessage";
@@ -20,9 +20,7 @@ import { TransactionErrorMessage } from "./TransactionErrorMessage";
 import { Trivia } from "./Trivia";
 import { WaitingForTransactionMessage } from "./WaitingForTransactionMessage";
 import Header from './Header'
-
-
-const { Title } = Typography;
+import { MyTitle } from "./MyTypography";
 
 const DEFAULT_NETWORK_ID = process.env.REACT_APP_NETWORK_ID.toString();
 
@@ -84,9 +82,9 @@ export class Dapp extends React.Component {
     if (!this.state.selectedAddress) {
       return (
         <Flex justify="center" align="center" vertical>
-          <Title>
+          <MyTitle level={2}>
             {process.env.REACT_APP_TITLE}
-          </Title>
+          </MyTitle>
           <ConnectWallet 
             connectWallet={() => this._connectWallet()} 
             networkError={this.state.networkError}
@@ -120,7 +118,7 @@ export class Dapp extends React.Component {
             quatityOfSuccessfullClaims={this.state.quatityOfSuccessfullClaims}
             claimTimesLimit={this.state.claimTimesLimit}
           />
-          <Divider />
+          <Divider style={{background: '#ffffff99'}} />
           <Flex justify="center" align="center" wrap="wrap" vertical>
             {/* 
               Sending a transaction isn't an immediate action. You have to wait

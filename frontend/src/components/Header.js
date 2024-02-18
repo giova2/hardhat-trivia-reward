@@ -1,7 +1,6 @@
 import React from 'react';
-import {Flex, Typography} from 'antd';
-
-const { Title, Text } = Typography
+import { Flex } from 'antd';
+import { MyTitle, MyText } from './MyTypography';
 
 function Header({
   title,
@@ -11,18 +10,18 @@ function Header({
 }) {
   return (
     <Flex justify="center" align="center" vertical>
-      <Title>
+      <MyTitle>
         {title}
-      </Title>
-      <Text ellipsis={{
+      </MyTitle>
+      <MyText ellipsis={{
         tooltip: subtitle
       }}>
         {subtitle}
-      </Text>
+      </MyText>
       {quatityOfSuccessfullClaims < claimTimesLimit ? 
-        <Title level={4}>You have {claimTimesLimit - quatityOfSuccessfullClaims} more times to claim a reward</Title>
+        <MyTitle level={4}>You have {claimTimesLimit - quatityOfSuccessfullClaims} more times to claim a reward</MyTitle>
         :
-        <Title level={4}>You have reached the maximum reward limit.</Title>
+        <MyTitle level={4}>You have reached the maximum reward limit.</MyTitle>
       }
     </Flex>
   )

@@ -1,10 +1,11 @@
 import React from "react";
 
 import { NetworkErrorMessage } from "./NetworkErrorMessage";
-import { Button, Flex, Layout, Typography } from 'antd';
+import { Flex, Layout } from 'antd';
+import { MyParagraph } from "./MyTypography";
+import MyButton from "./MyButton";
 
 const { Content } = Layout
-const { Paragraph} = Typography
 
 export function ConnectWallet({ connectWallet, networkError, dismiss }) {
   return (
@@ -18,11 +19,10 @@ export function ConnectWallet({ connectWallet, networkError, dismiss }) {
             />
           )}
         <Flex justify="center" align="center" vertical>
-          <Paragraph  >Please connect to your wallet.</Paragraph>
-          <Button type="primary"            
-            onClick={connectWallet}>
+          <MyParagraph>Please connect to your wallet.</MyParagraph>
+          <MyButton onClick={connectWallet}>
             Connect Wallet
-          </Button>
+          </MyButton>
         </Flex>
       </Flex>
     </Content>
